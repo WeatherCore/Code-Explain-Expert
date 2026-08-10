@@ -1,12 +1,9 @@
-# 📖 code-comment-expert
+# 📖 Code-Explain-Expert
 
 > 让 AI 通读大型项目源码，生成 `ZHIDAO.md` 项目导航文档，再批量添加高质量「意图级」代码注释——把陌生/自有代码库变成一本带「批注」和「地图」的实体书。
 
-## 仓库描述（可直接复制到 GitHub About 栏）
 
-**中文**：让 AI 通读大型项目源码，生成 ZHIDAO.md 导航文档并批量添加「意图级」注释，把陌生代码库变成带批注和地图的实体书，降低新人上手门槛。
-
-**English**：A WorkBuddy skill that reads through large codebases, generates a ZHIDAO.md navigation guide, and adds intent-level comments in batch — turning unfamiliar repos into an annotated book with a map.
+> A WorkBuddy skill that reads through large codebases, generates a ZHIDAO.md navigation guide, and adds intent-level comments in batch — turning unfamiliar repos into an annotated book with a map.
 
 ## 它解决什么问题
 
@@ -25,7 +22,7 @@
 |---|---|---|
 | `Code-Comment-Expert-v1.0` | 归档（可对比） | 首版：Java/Python 双语言、备份护栏、hash 兜底，但结构缺 Decision Tree/Validation、无黄金样例、无 openai.yaml |
 | `Code-Comment-Expert-v2.0` | 归档（可对比） | 大改进：14 语言骨架、依赖图、黄金风格样例、教科书式六段结构；但丢失 v1 的备份护栏、bigfile_split、hash 兜底，Python 解析退化为正则 |
-| **`Code-Comment-Expert-v3.0`** | **✅ 推荐使用** | 在 v2 基础上找回 v1 全部 5 处工程补强，修复 v2 的 9 个 bug，新增 `limitations.md` 诚实限制记录。通过 skill-creator-pro review：**0 high / 0 medium / 0 low** |
+| **`Code-Explain-Expert-v3.0`** | **✅ 推荐使用** | 在 v2 基础上找回 v1 全部 5 处工程补强，修复 v2 的 9 个 bug，新增 `limitations.md` 诚实限制记录。通过 skill-creator-pro review：**0 high / 0 medium / 0 low** |
 
 > v1.0 / v2.0 保留仅作版本对比与演进参考，实际使用请用 v3.0。
 
@@ -39,10 +36,10 @@
 帮我安装这个 skill：https://github.com/WeatherCore/Code-Comment-Expert
 ```
 
-或者用通用 CLI 安装器（[WeatherCore/Code-Comment-Expert](https://github.com/WeatherCore/Code-Comment-Expert)，支持 55+ runtime）：
+或者用通用 CLI 安装器（[WeatherCore/Code-Explain-Expert](https://github.com/WeatherCore/Code-Explain-Expert)，支持 55+ runtime）：
 
 ```bash
-npx skills add WeatherCore/Code-Comment-Expert
+npx skills add WeatherCore/Code-Explain-Expert
 ```
 
 它会自动识别你当前的 runtime 并把 skill 放到正确目录。需要指定时加 `-a claude-code` / `-a codex` / `-a cursor` / `-a openclaw` 等参数。
@@ -81,7 +78,7 @@ Step 4 变更更新   detect_changes.py（git 优先，非 git 回退 MD5）→ 
 ## 目录结构（v3.0）
 
 ```
-Code-Comment-Expert-v3.0/
+Code-Explain-Expert-v3.0/
 ├── SKILL.md                      # 控制层：触发/工作流/决策树/约束/验证/资源
 ├── agents/openai.yaml            # UI 元数据
 ├── scripts/                      # 4 个确定性脚本（零外部依赖，纯标准库）
