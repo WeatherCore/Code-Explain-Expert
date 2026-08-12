@@ -1,0 +1,8 @@
+# skill 运行时中间产物（skeleton.json / batch.txt / chunks.json）
+# 自动落盘到这里，完成后清理；不应被 git 追踪
+.work/
+
+# Python 编译产物（脚本运行后自动生成，不应追踪）
+__pycache__/
+*.py[cod]
+*$py.class

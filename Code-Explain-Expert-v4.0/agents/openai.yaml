@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Comment Expert 代码注释专家 v4.0"
+  short_description: "通读大型项目，生成 ZHIDAO.md 导航 + README + Description（中英双版）+ 批量意图级代码注释（绝不污染客户项目 / 中间产物落 skill .work/ 用完清理）"
+  default_prompt: "Use the ${skill_name} skill to handle this repeated workflow: scan the project skeleton, generate ZHIDAO.md navigation, README.md, and/or Description.md (bilingual), and add intent-level comments to source files. CRITICAL v4.0 red lines: (1) never execute any git write operation; (2) never create any file inside the user's project directory except final deliverables (ZHIDAO.md/README.md/Description.md/comments) — all intermediate files (skeleton.json/batch.txt/chunks.json) auto-save to the skill's .work/ directory, clean up after completion; (3) never upload project code to any remote; (4) never make backup decisions for the user; (5) never overwrite existing README/Description unless the user explicitly asks to rewrite."

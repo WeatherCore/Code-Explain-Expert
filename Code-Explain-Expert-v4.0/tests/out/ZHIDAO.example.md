@@ -1,0 +1,279 @@
+# 📖 payment-demo 项目导读指南
+
+> 本文件是 `payment-demo` 项目的中文导读，帮助你从零开始理解这个支付编排服务的架构、代码和运行方式。
+> 本文件由 code-comment-expert 生成，是项目的"地图"。阅读顺序：先看本文，再按「推荐阅读路径」浏览代码。
+> 生成时间：2026-08-05 ｜ 扫描范围：tests/fixtures/sample-java ｜ 源码文件数：3（另跳过 1 个测试文件）
+
+---
+
+## 目录
+
+1. [这个项目是干什么的？](#1-这个项目是干什么的)
+2. [核心概念速览](#2-核心概念速览)
+3. [项目目录结构详解](#3-项目目录结构详解)
+4. [运行流程全景图](#4-运行流程全景图)
+5. [逐文件代码导读](#5-逐文件代码导读)
+6. [关键设计模式解析](#6-关键设计模式解析)
+7. [配置系统详解](#7-配置系统详解)
+8. [如何运行和测试](#8-如何运行和测试)
+9. [复刻建议与学习路线](#9-复刻建议与学习路线)
+10. [常见问题](#10-常见问题)
+
+---
+
+## 1. 这个项目是干什么的？
+
+**一句话总结**：这是一个 Spring Boot 支付编排服务，对外暴露 `/api/pay` 接口，编排"幂等校验 → 锁订单 → 调网关扣款 → 落库流水"的完整支付流程。
+
+**更具体地说**：
+
+```
+HTTP /api/pay  →  PaymentController  →  PaymentService  →  PaymentMapper（DB）
+                                          ├─ 幂等闸门（findByOrderNo）
+                                          ├─ 锁订单（外部依赖 OrderService）
+                                          └─ 网关扣款（外部依赖 PaypalGateway）
+```
+
+它不是一个完整的支付网关，而是一个 **支付流程编排层**——把"幂等、锁、外部调用、落库"这四件事按正确顺序串起来，并保证任一失败可回滚。
+
+---
+
+## 2. 核心概念速览
+
+在开始读代码之前，你需要了解以下关键概念：
+
+### 2.1 幂等闸门（Idempotency Gate）
+
+同一笔订单可能因网关回调重试而被发起多次支付。幂等闸门 = `findByOrderNo` 查询，已存在成功流水时直接返回，**避免重复扣款**。把它理解成"门卫"——见过这单就拒绝二次进入。
+
+### 2.2 编排（Orchestration）
+
+PaymentService 不亲自扣款也不亲自落库，它只负责按正确顺序调用其他组件。这就是编排模式——把 PaymentService 想象成"总导演"，不演戏，只调度演员。
+
+### 2.3 外部依赖占位（Stub Dependencies）
+
+本项目里的 `OrderService`、`PaypalGateway` 是外部包，不在本仓库内。`PaymentMapper.findByOrderNo` 在示例中是内存存根。读代码时要把这些当"黑盒接口"理解，关注 PaymentService 如何编排它们，而非它们内部如何实现。
+
+---
+
+## 3. 项目目录结构详解
+
+```
+sample-java
+├── pom.xml                                  # 📋 Maven 构建配置（Spring Web + TX + JUnit 5）
+└── src
+    ├── main/java/com/demo/payment/          # 🔐 支付域核心代码
+    │   ├── PaymentController.java           # ⭐ REST 入口（薄层，无业务逻辑）
+    │   ├── PaymentService.java              # ⭐ 支付编排核心（幂等+锁+扣款+落库）
+    │   └── PaymentMapper.java               # 📋 数据访问（示例存根）
+    └── test/java/com/demo/payment/          # 🧪 测试（本 Skill 自动跳过，不加注释）
+        └── PaymentServiceTest.java
+```
+
+| 标记 | 含义 |
+|---|---|
+| ⭐ | 核心文件，新人优先读 |
+| 🔐 | 业务核心域 |
+| 📋 | 配置/数据访问 |
+| 🧪 | 测试（Skill 跳过） |
+
+---
+
+## 4. 运行流程全景图
+
+下图展示一次完整支付请求的处理流程，每个节点标注职责与退出条件：
+
+```
+┌─────────────────┐
+│ HTTP POST /api/pay │  退出条件：请求体合法（含 orderNo + amount）
+└────────┬────────┘
+         ↓
+┌─────────────────────────┐
+│ PaymentController.create │  职责：解 JSON → 调 PaymentService → 返结果
+└────────┬────────────────┘  退出条件：Service 返回非异常
+         ↓
+┌──────────────────────────┐
+│ PaymentService.pay       │  职责：编排幂等+锁+扣款+落库
+│  ┌────────────────────┐  │
+│  │ 1. findByOrderNo   │  │  退出：record != null → 返 ALREADY_PAID（幂等命中）
+│  └─────────┬──────────┘  │
+│            ↓ null         │
+│  ┌────────────────────┐  │
+│  │ 2. lockOrder       │  │  退出：锁失败 → 抛异常；锁成功 → 继续
+│  └─────────┬──────────┘  │
+│            ↓              │
+│  ┌────────────────────┐  │
+│  │ 3. gateway.charge  │  │ 退出：扣款失败 → 订单保持锁定，等对账兜底
+│  └─────────┬──────────┘  │
+│            ↓              │
+│  ┌────────────────────┐  │
+│  │ 4. mapper.insert   │  │ 退出：落库成功 → 返 SUCCESS
+│  └────────────────────┘  │
+└──────────────────────────┘
+```
+
+**要点**：
+- 步骤 1 是幂等闸门，**任何重复请求都在这里被拦截**，不会走到扣款
+- 步骤 2-4 没有显式事务，是因为网关无补偿接口，扣款失败时订单保持锁定，由外部对账任务兜底
+- 失败 ≠ 异常：扣款失败返回 `PaymentResult`，订单状态变化由对账任务异步推进
+
+---
+
+## 5. 逐文件代码导读
+
+### 5.1 `PaymentController.java`（~21 行，约 2 分钟）
+
+**文件作用**：REST 入口层，把 HTTP 请求转交给 PaymentService。
+
+**阅读顺序建议**：先看类注释（`@RestController`、`@RequestMapping("/api")`）→ 看 `create` 方法签名（`@PostMapping("/pay")`）→ 进入 PaymentService。
+
+| 关键数据结构 | 说明 |
+|---|---|
+| `PaymentRequest` | 请求体，含 orderNo + amount |
+| `PaymentResult` | 返回体，含状态码与原因 |
+
+**要点**：
+- Controller 是薄层，**无业务逻辑**，所有判断在 Service 层
+- 构造器注入 PaymentService（无 `@Autowired` 字段注入，推荐做法）
+
+---
+
+### 5.2 `PaymentService.java`（~45 行，约 10 分钟，⭐ 核心）
+
+**文件作用**：支付流程编排核心，按"幂等 → 锁单 → 扣款 → 落库"四步串行调用。
+
+**阅读顺序建议**：先看 `pay` 方法签名 → 看幂等闸门分支 → 看锁单+扣款+落库顺序 → 最后看构造器注入了哪些外部依赖。
+
+| 步骤 | 方法 | 失败处理 |
+|---|---|---|
+| 1. 幂等 | `paymentMapper.findByOrderNo` | 命中 → 返 `alreadyPaid()`，不抛异常 |
+| 2. 锁单 | `orderService.lockOrder` | 锁失败 → 抛异常，整体中止 |
+| 3. 扣款 | `paypalGateway.charge` | 扣款失败 → 订单保持锁定，由对账兜底（不抛异常） |
+| 4. 落库 | `paymentMapper.insert` | 落库失败 → 抛异常（数据一致性问题，需人工介入） |
+
+**要点**：
+- 这是编排层，**不亲自扣款也不亲自落库**，只调度
+- 网关无补偿接口是关键设计约束，决定了"失败不回滚订单"的取舍
+- 幂等闸门和锁单是**双保险**：即使网关回调重试穿透，锁单也会拦下并发
+
+---
+
+### 5.3 `PaymentMapper.java`（~15 行，约 1 分钟）
+
+**文件作用**：数据访问层（DAO），示例中是内存存根，真实项目接 MyBatis/JPA。
+
+**阅读顺序建议**：扫一眼方法签名即可，理解它是个"按 orderNo 查记录"的接口。
+
+| 方法 | 用途 |
+|---|---|
+| `findByOrderNo(String orderNo)` | 幂等闸门调用，按订单号查支付流水 |
+
+**要点**：
+- 示例存根返回 null，所以幂等闸门永远不命中——读真实项目时要假设它有真实返回
+- 真实 PaymentMapper 应有 `insert(PaymentRecord)` 方法（本示例省略）
+
+---
+
+## 6. 关键设计模式解析
+
+### 6.1 编排模式（Orchestration）
+
+```
+[Controller] --call--> [Service] --call--> [Mapper / OrderService / Gateway]
+                          ↑
+                   编排者，不实现具体逻辑
+```
+
+**意图**：把"做什么"（业务流程）和"怎么做"（具体技术实现）分离。PaymentService 只描述步骤顺序，每个步骤的实际工作交给专门的组件。
+
+**为什么这样写**：支付流程有强顺序约束（幂等必须在锁单前，锁单必须在扣款前），把这些约束集中在一个类里比分散在各组件里更易维护。
+
+### 6.2 幂等闸门模式（Idempotency Gate）
+
+```java
+// 幂等闸门：同单号二次进入直接返回，防网关回调重试重复扣款
+PaymentRecord record = paymentMapper.findByOrderNo(request.getOrderNo());
+if (record != null) return PaymentResult.alreadyPaid();
+```
+
+**意图**：把"重复检测"前置到流程最开头，避免后续重操作（锁单、扣款）被无谓触发。
+
+---
+
+## 7. 配置系统详解
+
+本项目为最小示例，无外部配置文件。真实支付服务通常会有以下配置项：
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `payment.gateway.timeout` | 3000ms | 网关调用超时 |
+| `payment.gateway.retry` | 2 | 网关调用重试次数 |
+| `payment.lock.ttl` | 7200s | 订单锁定时长（与对账周期对齐） |
+
+加载优先级：环境变量 > application.yml > 默认值。
+
+---
+
+## 8. 如何运行和测试
+
+```bash
+# 1. 环境准备
+mvn clean install
+
+# 2. 启动
+mvn spring-boot:run
+
+# 3. 评估（示例请求）
+curl -X POST http://localhost:8080/api/pay \
+  -H "Content-Type: application/json" \
+  -d '{"orderNo":"ORD001","amount":99.5}'
+```
+
+测试：`mvn test`（运行 `PaymentServiceTest`，本 Skill 跳过测试目录不加注释，但保留测试代码不动）。
+
+---
+
+## 9. 复刻建议与学习路线
+
+| 阶段 | 做什么 | 耗时估计 |
+|---|---|---|
+| 1 | 读 PaymentController，理解 HTTP 入口约定 | 约 5 分钟 |
+| 2 | 读 PaymentService.pay，理解四步编排顺序与每步的失败处理 | 约 15 分钟 |
+| 3 | 读 PaymentMapper，理解数据访问边界 | 约 2 分钟 |
+| 4 | 思考：为什么幂等闸门放在锁单前？为什么扣款失败不回滚？ | 约 10 分钟 |
+| 5 | 扩展练习：加一个 `refund` 方法，复用幂等闸门模式 | 约 30 分钟 |
+
+**学习资源**：
+- Spring 官方文档：Transaction Management 章节（理解为什么本项目没用 `@Transactional`）
+- Martin Fowler 的 Patterns of Enterprise Architecture：Unit of Work、Idempotent Receiver
+
+---
+
+## 10. 常见问题
+
+**Q1：为什么 PaymentService 没用 `@Transactional`？**
+A：因为网关调用（HTTP/RPC）无法回滚，跨进程事务只能用 Saga / 对账兜底模式。本项目的"失败保持锁定 + 对账兜底"就是一种简化版 Saga。
+
+**Q2：幂等闸门和锁单不是重复吗？**
+A：不重复。幂等闸门防"同一笔订单被发起多次"（网关回调重试），锁单防"并发同时进入"。前者是时间维度，后者是并发维度。
+
+**Q3：网关扣款失败时订单一直锁着，怎么办？**
+A：由外部对账任务（不在本仓库）每 2 小时扫描超时锁定订单，确认网关侧状态后决定解锁或重试。这是本编排层与对账层的契约。
+
+---
+
+## 附：关键术语对照表
+
+| 英文 | 中文 | 说明 |
+|---|---|---|
+| Idempotency Gate | 幂等闸门 | 同请求多次进入只生效一次的拦截器 |
+| Orchestration | 编排 | 按顺序调度其他组件、自身不实现具体逻辑的模式 |
+| Saga | 长事务 | 跨进程、无法用单一 DB 事务保证一致性的长流程，靠补偿/对账兜底 |
+| Stub | 存根 | 接口的占位实现，仅满足编译/调用，不含真实逻辑 |
+
+---
+
+## 附：后续维护
+
+- 模块职责变更时更新本文件（重新跑 `extract_skeleton.py` 查看最新结构，手动定位受影响章节）。
+- 新增模块时补充第 5 章"逐文件代码导读"对应小节。
