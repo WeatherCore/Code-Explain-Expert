@@ -96,8 +96,8 @@ def test_extract_skeleton_py():
     check("total_files == 2", sk.get("total_files") == 2, sk.get("total_files"))
     check("skipped_test_files == 1", sk.get("skipped_test_files") == 1, sk.get("skipped_test_files"))
     check("modules 含 app", "app" in (sk.get("modules") or {}))
-    check("files[0] 含 existing_comment_ratio 字段",
-          "existing_comment_ratio" in (sk.get("files") or [{}])[0])
+    check("files[0] 含 existing_Explain_ratio 字段",
+          "existing_Explain_ratio" in (sk.get("files") or [{}])[0])
     after = snapshot_files(SAMPLE_PY)
     check("客户项目零污染（无新增文件）", before == after, f"新增: {after - before}")
 

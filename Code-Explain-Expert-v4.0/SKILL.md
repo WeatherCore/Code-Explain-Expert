@@ -1,9 +1,9 @@
 ---
-name: code-comment-expert
-description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）、README、Description（中英双版），再批量添加高质量"意图级"代码注释，让新人阅读陌生/自有项目像看带批注和地图的书。Use when the user asks to add intent-level comments across a whole project. 触发场景：①"帮我通读这个项目，给所有核心业务模块加上中文业务注释"；②"帮我把 XX 包/模块下所有类深度注释一遍"；③"追踪 XX 接口从 Controller 到数据库的完整调用链并加注释"；④"帮我给这个项目写个 README"；⑤"帮我写个项目简介 / Description"。适用于存在标准项目结构（pom.xml / build.gradle / package.json / go.mod / pyproject.toml 等）的多文件工程，兼容 Java/Python/JS/TS 等主流语言。不触发：单段代码讲解、代码重构、运行故障修复、无项目结构的单文件脚本。
+name: code-Explain-expert
+description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）、README、Description（中英双版），再批量添加高质量"意图级"代码注释，让新人阅读陌生/自有项目像看带批注和地图的书。Use when the user asks to add intent-level Explains across a whole project. 触发场景：①"帮我通读这个项目，给所有核心业务模块加上中文业务注释"；②"帮我把 XX 包/模块下所有类深度注释一遍"；③"追踪 XX 接口从 Controller 到数据库的完整调用链并加注释"；④"帮我给这个项目写个 README"；⑤"帮我写个项目简介 / Description"。适用于存在标准项目结构（pom.xml / build.gradle / package.json / go.mod / pyproject.toml 等）的多文件工程，兼容 Java/Python/JS/TS 等主流语言。不触发：单段代码讲解、代码重构、运行故障修复、无项目结构的单文件脚本。
 ---
 
-# Code Comment Expert
+# Code Explain Expert
 
 ## Goal
 用「先宏观后微观」的方式让大模型完整理解项目后，产出①结构化导航文档 ZHIDAO.md（项目地图）、②可选的 README.md（项目门面）与 Description.md（中英双版项目名片）、③逐文件意图级注释（代码批注），把陌生项目变成可通读的"带批注实体书"。核心承诺：**只加注释，绝不改逻辑；写入前必先告知用户待改清单并等确认**。
@@ -65,13 +65,13 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 - **优先级决策**（用 skeleton.json 字段）：
   - 出度高的文件（Controller/入口）→ 先注释，读者先看到入口
   - 入度高的文件（Service/Domain）→ 核心业务，优先
-  - `existing_comment_ratio < 0.1` 的文件 → 注释真空区，优先
+  - `existing_Explain_ratio < 0.1` 的文件 → 注释真空区，优先
   - 跳过：配置文件、文档、静态资源、测试（脚本已过滤）
 - **语言分支**：Java / Python / JS / TS / Go → 读 `language-adaptation.md` 对应章节
 - **导航文档**：生成 ZHIDAO.md 前读 `navigation-guide.md`（唯一权威：10 章黄金模板 + 风格特征 + 验收清单）
 - **README**：生成 README.md 前读 `readme-guide.md`（7 章模板 + 三产物定位区别 + 已有 README 绝不覆盖策略）
 - **Description**：生成 Description.md 前读 `description-guide.md`（300-350 字符中英双版 + 4 句话结构 + 纯文本无 markdown）
-- **注释风格**：生成注释前读 `comment-style-guide.md`（唯一权威：用户黄金风格 + 意图级底线 + 正反例速查 + 防编造规则）；风格把握不准时对照 `samples/open_deep_research/`（用户认可的原始黄金样例源码）与 `samples/ZHIDAO.md`（用户认可的黄金导航样例）
+- **注释风格**：生成注释前读 `Explain-style-guide.md`（唯一权威：用户黄金风格 + 意图级底线 + 正反例速查 + 防编造规则）；风格把握不准时对照 `samples/open_deep_research/`（用户认可的原始黄金样例源码）与 `samples/ZHIDAO.md`（用户认可的黄金导航样例）
 - **超大项目**（skeleton.json `total_files > 50` 或源码总量 > 1MB）→ 读 `orchestration-guide.md` 的批处理策略，分阶段执行，每轮只处理 3-5 个文件
 - **大文件**（单文件 > 500 行）→ 跑 `scripts/bigfile_split.py` 切块，逐块注释（先类/方法注释，行内注释第二遍补）
 - **流水线失败** → 查 `orchestration-guide.md` 末尾"失败排查表"
@@ -88,7 +88,7 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 **注释质量红线**：
 - **批量写回前向用户确认**：告知将修改的文件清单与风险；用户未确认不得批量写。本 skill 默认直接写入源文件，因此确认环节不可省。
 - **只加注释，永不修改业务逻辑代码**；发现疑似 bug 只写注释标注（如 `// [注意] 潜在NPE：...`），禁止顺手修复。
-- **不覆盖已有有效注释**：原文件已存在的注释（含 TODO、说明性注释、英文 docstring）一律保留；`extract_skeleton.py` 输出的 `existing_comment_ratio` 用于判断是否需要补充。已有注释质量差时保留原文，下方追加意图级注释并用 `[补充]` 前缀标注。
+- **不覆盖已有有效注释**：原文件已存在的注释（含 TODO、说明性注释、英文 docstring）一律保留；`extract_skeleton.py` 输出的 `existing_Explain_ratio` 用于判断是否需要补充。已有注释质量差时保留原文，下方追加意图级注释并用 `[补充]` 前缀标注。
 - **不编造**：遇到读不懂的代码，注释写 `// 待确认：此处逻辑疑似 X，但未找到对应业务文档，需与负责人核实`，而非臆测业务意图。
 - **业务意图优先**：注释解释"为什么这么做、业务上是什么、隐藏约束是什么"，拒绝流水账式复述代码。
 - **先宏观后微观**：必须先生成/确认 ZHIDAO.md，再开始逐文件注释；未生成导航文档不得直接进入注释环节（定向攻坚模式除外，但需先说明目标模块在项目中的位置）。
@@ -103,7 +103,7 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 - **Step 2b 后**（若执行）：README.md 含 7 章模板核心章节（第 1/2/3/4/5 章不可省），快速开始命令可复制即用，篇幅 50-150 行，已有 README 未被覆盖（对照 `readme-guide.md` §7 验收清单）
 - **Step 2c 后**（若执行）：Description.md 含中英双版，各 300-350 字符，4 句话结构齐备，纯文本无 markdown 语法（对照 `description-guide.md` §8 验收清单）
 - **Step 3 后**：抽查 2-3 个已注释文件，确认
-  ①注释为意图级非流水账（对照 `comment-style-guide.md` §5 正反例速查）
+  ①注释为意图级非流水账（对照 `Explain-style-guide.md` §5 正反例速查）
   ②原逻辑代码零改动（`git diff --stat` 只显示注释行新增；非 git 仓库用 `fetch_sources.py` 重新捞原文件比对）
   ③已有注释（含英文 docstring）未被覆盖
   ④无 `// 待确认` 之外的臆测性业务描述（防编造自检）
@@ -111,5 +111,5 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 
 ## Resources
 - **scripts/**：`extract_skeleton.py`（Step 1）/ `fetch_sources.py`（Step 3）/ `bigfile_split.py`（大文件）。三个脚本均默认自动落盘到 skill `.work/` 目录，不污染客户项目；完成后清理 `.work/`。
-- **references/**：`navigation-guide.md`（Step 2 必读）、`readme-guide.md`（Step 2b 必读）、`description-guide.md`（Step 2c 必读）、`comment-style-guide.md`（Step 3 必读）、`language-adaptation.md`（语言分支）、`orchestration-guide.md`（流水线细节 + 失败排查）、`limitations.md`（已知限制）
+- **references/**：`navigation-guide.md`（Step 2 必读）、`readme-guide.md`（Step 2b 必读）、`description-guide.md`（Step 2c 必读）、`Explain-style-guide.md`（Step 3 必读）、`language-adaptation.md`（语言分支）、`orchestration-guide.md`（流水线细节 + 失败排查）、`limitations.md`（已知限制）
 - **samples/**：`references/samples/ZHIDAO.md` 与 `references/samples/open_deep_research/` 是用户认可的黄金样例，风格把握不准时对照

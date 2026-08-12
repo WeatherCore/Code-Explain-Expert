@@ -25,7 +25,7 @@
 **优先级决策输入**（给 LLM 的全局上下文 = 骨架 JSON + README）：
 - 出度高的文件（Controller/入口）：先注释，读者先看到入口
 - 入度高的文件（Service/Domain）：核心业务，优先但可稍后（理解其调用方后再注释更准）
-- `existing_comment_ratio` < 0.1 的文件：注释真空区，值得优先
+- `existing_Explain_ratio` < 0.1 的文件：注释真空区，值得优先
 - 跳过：配置文件、文档、静态资源、测试（脚本已过滤）
 
 **定向攻坚模式**（场景 B）：`--path <目标目录>` 只扫目标；同时读一次全仓 `modules` 概要定位目标模块在整体中的位置（先宏观定位，再微观精读）。
@@ -45,7 +45,7 @@
 - 每轮流程：
   1. 从优先级队列取下一批文件（从 `.work/skeleton.json` 的 `files` 数组提取路径）
   2. `python scripts/fetch_sources.py --root <项目根> --files <逗号分隔路径> --max-bytes 60000`（**自动落盘到 `.work/batch.txt`**，LLM 用 Read 工具读取；也可用 `--from-skeleton` + `--ids`/`--top` 按骨架索引捞取）
-  3. 读取 `.work/batch.txt` 的源码批次，按 `references/comment-style-guide.md` + `references/language-adaptation.md` 生成注释
+  3. 读取 `.work/batch.txt` 的源码批次，按 `references/Explain-style-guide.md` + `references/language-adaptation.md` 生成注释
   4. 用编辑工具逐文件写入（只新增注释行，不触碰逻辑行）
   5. 记录该文件已注释，更新进度
 - 每完成 5 个文件自查：git 仓库用 `git diff --stat` 确认只有注释行新增、无逻辑变更；非 git 仓库用 `fetch_sources.py` 重新捞原文件比对

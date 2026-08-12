@@ -95,7 +95,7 @@ _KEYWORD_GUARD = rf"(?!{CONTROL_KEYWORDS}\b)"
 # ---------------------------------------------------------------------------
 
 
-def _strip_comments(source: str, ext: str) -> str:
+def _strip_Explains(source: str, ext: str) -> str:
     """剥离注释与字符串字面量，保留换行（行号可用）。
 
     注意：本函数仅用于非 Python 语言的"近似行号定位"。Python 用 ast 解析，
@@ -414,13 +414,13 @@ def _parse_go(source: str) -> tuple[list[dict], list[str], list[str], list[dict]
     return classes, imports, referenced, funcs
 
 
-def _count_comment_ratio(source: str, ext: str) -> float:
+def _count_Explain_ratio(source: str, ext: str) -> float:
     total = max(1, source.count("\n"))
     if ext == "python":
-        comment_lines = sum(1 for ln in source.split("\n") if ln.strip().startswith("#"))
+        Explain_lines = sum(1 for ln in source.split("\n") if ln.strip().startswith("#"))
     else:
-        comment_lines = sum(1 for ln in source.split("\n") if ln.strip().startswith(("//", "/*", "*")))
-    return round(min(1.0, comment_lines / total), 3)
+        Explain_lines = sum(1 for ln in source.split("\n") if ln.strip().startswith(("//", "/*", "*")))
+    return round(min(1.0, Explain_lines / total), 3)
 
 
 # ---------------------------------------------------------------------------
@@ -466,14 +466,14 @@ def extract_file(p: Path, root: Path, project_type_names: set[str] | None = None
     if not raw.strip():
         return None
     lines = raw.split("\n")
-    clean = _strip_comments(raw, lang)
+    clean = _strip_Explains(raw, lang)
     rel = p.relative_to(root).as_posix()
 
     if lang in ("java", "kotlin", "csharp", "php", "c", "cpp"):
         classes, imports, package, referenced = _parse_java_like(clean, lines)
         funcs: list[dict] = []
     elif lang == "python":
-        # Python 用 ast 解析（直接传 raw，不依赖 _strip_comments 的字符串精度）
+        # Python 用 ast 解析（直接传 raw，不依赖 _strip_Explains 的字符串精度）
         classes, imports, package, funcs = _parse_python(raw)
         referenced = []  # 第二遍扫描会基于项目类型名集合补全
     elif lang in ("typescript", "javascript"):
@@ -504,7 +504,7 @@ def extract_file(p: Path, root: Path, project_type_names: set[str] | None = None
         "referenced_types": referenced,
         "line_count": len(lines),
         "size_bytes": p.stat().st_size,
-        "existing_comment_ratio": _count_comment_ratio(raw, lang),
+        "existing_Explain_ratio": _count_Explain_ratio(raw, lang),
     }
 
 
