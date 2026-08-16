@@ -71,7 +71,7 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 - **导航文档**：生成 ZHIDAO.md 前读 `navigation-guide.md`（唯一权威：10 章黄金模板 + 风格特征 + 验收清单）
 - **README**：生成 README.md 前读 `readme-guide.md`（黄金门面模板 + 两类场景 + 三产物定位区别 + 已有 README 绝不覆盖策略），风格对照 `samples/README/`
 - **Description**：生成 Description.md 前读 `description-guide.md`（300-350 字符中英双版 + 4 句话结构 + 纯文本无 markdown）
-- **注释风格**：生成注释前读 `comment-style-guide.md`（唯一权威：用户黄金风格 + 意图级底线 + 正反例速查 + 防编造规则）；风格把握不准时对照两套黄金样例 `samples/Gewu-Deep-Research/`（Agent 编排型）与 `samples/Code-Probe/`（业务服务型），导航文档对照 `samples/ZHIDAO.md`
+- **注释风格**：生成注释前读 `comment-style-guide.md`（唯一权威：用户黄金风格 + 意图级底线 + 正反例速查 + 防编造规则）；风格把握不准时对照三套黄金样例 `samples/Gewu-Deep-Research/`（Agent 编排型）、`samples/Code-Probe/`（业务服务型）与 `samples/Mall-Order/`（Java Spring Boot 业务服务型：Controller/Service/Mapper 分层、幂等/防超卖/状态机 CAS、接口与实现注释分工），导航文档对照 `samples/ZHIDAO.md`
 - **超大项目**（skeleton.json `total_files > 50` 或源码总量 > 1MB）→ 读 `orchestration-guide.md` 的批处理策略，分阶段执行，每轮只处理 3-5 个文件
 - **大文件**（单文件 > 500 行）→ 跑 `scripts/bigfile_split.py` 切块，逐块注释（先类/方法注释，行内注释第二遍补）
 - **流水线失败** → 查 `orchestration-guide.md` 末尾"失败排查表"
@@ -112,4 +112,4 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 ## Resources
 - **scripts/**：`extract_skeleton.py`（Step 1）/ `fetch_sources.py`（Step 3）/ `bigfile_split.py`（大文件）。三个脚本均默认自动落盘到 skill `.work/` 目录，不污染客户项目；完成后清理 `.work/`。
 - **references/**：`navigation-guide.md`（Step 2 必读）、`readme-guide.md`（Step 2b 必读）、`description-guide.md`（Step 2c 必读）、`comment-style-guide.md`（Step 3 必读）、`language-adaptation.md`（语言分支）、`orchestration-guide.md`（流水线细节 + 失败排查）、`limitations.md`（已知限制）
-- **samples/**：用户认可的黄金样例，风格把握不准时对照——注释两套：`references/samples/Gewu-Deep-Research/`（Agent 编排型）与 `references/samples/Code-Probe/`（业务服务型）；README 两套：`references/samples/README/README1.md`（产品型）与 `README2.md`（学习型）；导航：`references/samples/ZHIDAO.md`
+- **samples/**：用户认可的黄金样例，风格把握不准时对照——注释三套：`references/samples/Gewu-Deep-Research/`（Agent 编排型）、`references/samples/Code-Probe/`（业务服务型）与 `references/samples/Mall-Order/`（Java Spring Boot 业务服务型）；README 两套：`references/samples/README/README1.md`（产品型）与 `README2.md`（学习型）；导航：`references/samples/ZHIDAO.md`

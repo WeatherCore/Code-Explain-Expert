@@ -1,6 +1,6 @@
 # 代码注释规范——唯一权威
 
-> 生成任何代码注释时**只读本文件**（语言语法另见 `language-adaptation.md`），风格把握不准时对照两套黄金样例：`samples/Gewu-Deep-Research/`（Agent 编排型项目：子图/工具调用/状态流转）与 `samples/Code-Probe/`（业务服务型项目：RAG 检索/SSE 流式/会话持久化）。
+> 生成任何代码注释时**只读本文件**（语言语法另见 `language-adaptation.md`），风格把握不准时对照三套黄金样例：`samples/Gewu-Deep-Research/`（Agent 编排型项目：子图/工具调用/状态流转）、`samples/Code-Probe/`（业务服务型项目：RAG 检索/SSE 流式/会话持久化）与 `samples/Mall-Order/`（Java Spring Boot 业务服务型项目：Controller/Service/Mapper 分层、幂等与防超卖、状态机 CAS、接口与实现的注释分工、MyBatis SQL 意图注释）。
 > 本文件融合三层：**用户黄金风格**（默认采用，拟人化比喻等）+ **通用底线**（意图级 vs 流水账）+ **正反例速查**。
 
 ## 1. 底线：意图级 vs 流水账
@@ -159,6 +159,22 @@ deep_researcher_builder.add_node("research_supervisor", supervisor_subgraph)
 | 流式逐字输出 | 打字机效果 |
 | 工具/依赖缺失报错 | 赤手空拳、直接报错罢工 |
 | 非法输入提前拦截 | 防脏数据 |
+
+**Spring Boot 概念比喻**（完整示范见 `samples/Mall-Order/`）：
+
+| Spring 概念 | 推荐比喻 |
+|---|---|
+| Controller | 前台总服务台（收单、转交、开回执，绝不自己干活） |
+| Service 接口 / Impl | 岗位说明书（只写契约）/ 业务经理（排兵布阵） |
+| Mapper / DAO | 仓库管理员（只管存取，不问业务） |
+| DTO / VO | 点菜单（前端→后端）/ 回执小票（后端→前端） |
+| IoC 容器 / 依赖注入 | 人事部门：启动时雇佣各岗位并派工 |
+| 构造器注入 final 字段 | 入职发工牌，整个生命周期不换人 |
+| @Transactional | 这一单要么全做完，要么全没收过 |
+| 乐观锁 / CAS 更新 | 抢座位前先看座位号变没变，数据库行锁当裁判 |
+| 幂等挡板 / 唯一索引 | 同一单号二次进门直接打发走 + 双保险门禁 |
+| @RestControllerAdvice 全局异常 | 售后服务台：堆栈绝不见用户 |
+| 延迟消息盯支付超时 | 15 分钟盯梢闹钟 |
 
 ## 3. 注释粒度与红线
 
