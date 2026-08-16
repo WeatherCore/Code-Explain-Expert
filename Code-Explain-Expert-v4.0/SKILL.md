@@ -27,7 +27,7 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 - 先输出给用户确认，再进入注释环节。
 
 ### Step 2b：README 生成（可选，用户要求时做）
-- 基于 skeleton.json + ZHIDAO.md（若已生成），按 `readme-guide.md`（7 章模板）生成或更新 `README.md`，输出到**目标项目根目录**。
+- 基于 skeleton.json + ZHIDAO.md（若已生成），按 `readme-guide.md`（黄金门面模板：居中头部+徽章、mermaid 架构图、emoji 章节头、编号快速开始、折叠收纳长内容，150-400 行）生成或更新 `README.md`，输出到**目标项目根目录**；风格把握不准时对照 `samples/README/README1.md`（产品型）与 `samples/README/README2.md`（学习型）。
 - **已有 README 时绝不覆盖**（除非用户明确要求重写）；"更新/补全"模式保留原文，只补缺失章节，新增内容用 `<!-- CC: 新增 -->` 标记。
 - 用户没提 README 就不动——README 是用户的地盘，不请自来就是越权。
 
@@ -60,7 +60,7 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
   - 全量填充（场景 A）→ Step 0→1→2→（2b 可选）→3 全跑，按模块分批
   - 定向攻坚（场景 B）→ `extract_skeleton.py --root <项目根> --path <目标目录>`，跳过全仓导航，直接 Step 3
   - 链路追踪（场景 C）→ 先 `extract_skeleton.py`，从 skeleton.json 的 `dependency_links` 沿调用链追踪，仅注释链路节点文件
-  - README 生成（场景 D）→ 先 `extract_skeleton.py`，基于 skeleton.json 按 `readme-guide.md` 生成/更新 README.md（已有 README 绝不覆盖，除非用户要求重写）
+  - README 生成（场景 D）→ 先 `extract_skeleton.py`，基于 skeleton.json 按 `readme-guide.md` 生成/更新 README.md（黄金门面模板：徽章+mermaid+emoji 章节+折叠，150-400 行；已有 README 绝不覆盖，除非用户要求重写）
   - Description 生成（场景 E）→ 先 `extract_skeleton.py`，基于 skeleton.json 按 `description-guide.md` 生成 Description.md（中英双版各 300-350 字符，已有绝不覆盖）
 - **优先级决策**（用 skeleton.json 字段）：
   - 出度高的文件（Controller/入口）→ 先注释，读者先看到入口
@@ -69,9 +69,9 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
   - 跳过：配置文件、文档、静态资源、测试（脚本已过滤）
 - **语言分支**：Java / Python / JS / TS / Go → 读 `language-adaptation.md` 对应章节
 - **导航文档**：生成 ZHIDAO.md 前读 `navigation-guide.md`（唯一权威：10 章黄金模板 + 风格特征 + 验收清单）
-- **README**：生成 README.md 前读 `readme-guide.md`（7 章模板 + 三产物定位区别 + 已有 README 绝不覆盖策略）
+- **README**：生成 README.md 前读 `readme-guide.md`（黄金门面模板 + 两类场景 + 三产物定位区别 + 已有 README 绝不覆盖策略），风格对照 `samples/README/`
 - **Description**：生成 Description.md 前读 `description-guide.md`（300-350 字符中英双版 + 4 句话结构 + 纯文本无 markdown）
-- **注释风格**：生成注释前读 `Explain-style-guide.md`（唯一权威：用户黄金风格 + 意图级底线 + 正反例速查 + 防编造规则）；风格把握不准时对照 `samples/open_deep_research/`（用户认可的原始黄金样例源码）与 `samples/ZHIDAO.md`（用户认可的黄金导航样例）
+- **注释风格**：生成注释前读 `comment-style-guide.md`（唯一权威：用户黄金风格 + 意图级底线 + 正反例速查 + 防编造规则）；风格把握不准时对照两套黄金样例 `samples/Gewu-Deep-Research/`（Agent 编排型）与 `samples/Code-Probe/`（业务服务型），导航文档对照 `samples/ZHIDAO.md`
 - **超大项目**（skeleton.json `total_files > 50` 或源码总量 > 1MB）→ 读 `orchestration-guide.md` 的批处理策略，分阶段执行，每轮只处理 3-5 个文件
 - **大文件**（单文件 > 500 行）→ 跑 `scripts/bigfile_split.py` 切块，逐块注释（先类/方法注释，行内注释第二遍补）
 - **流水线失败** → 查 `orchestration-guide.md` 末尾"失败排查表"
@@ -100,10 +100,10 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 - **Step 0 后**：已向用户告知待写入文件清单与"请自行备份"提醒，用户已确认（**不验证任何备份产物**——备份是用户的事，skill 不创建也不依赖）
 - **Step 1 后**：`extract_skeleton.py` 退出码 0，skeleton.json 可解析，`total_files > 0`，`files[]` 不含测试/构建产物路径
 - **Step 2 后**：ZHIDAO.md 含核心章节（第 1/3/4/5/9 章不可省），且按 `navigation-guide.md` 的 10 章黄金模板与风格特征生成
-- **Step 2b 后**（若执行）：README.md 含 7 章模板核心章节（第 1/2/3/4/5 章不可省），快速开始命令可复制即用，篇幅 50-150 行，已有 README 未被覆盖（对照 `readme-guide.md` §7 验收清单）
+- **Step 2b 后**（若执行）：README.md 居中头部齐备（emoji 项目名 + 一句话定位 + 徽章行），至少 1 张可渲染的 mermaid 架构图，快速开始命令可复制即用，长内容已用 `<details>` 折叠，篇幅 150-400 行，项目结构章节指向 ZHIDAO.md，已有 README 未被覆盖（对照 `readme-guide.md` §8 验收清单）
 - **Step 2c 后**（若执行）：Description.md 含中英双版，各 300-350 字符，4 句话结构齐备，纯文本无 markdown 语法（对照 `description-guide.md` §8 验收清单）
 - **Step 3 后**：抽查 2-3 个已注释文件，确认
-  ①注释为意图级非流水账（对照 `Explain-style-guide.md` §5 正反例速查）
+  ①注释为意图级非流水账（对照 `comment-style-guide.md` §5 正反例速查）
   ②原逻辑代码零改动（`git diff --stat` 只显示注释行新增；非 git 仓库用 `fetch_sources.py` 重新捞原文件比对）
   ③已有注释（含英文 docstring）未被覆盖
   ④无 `// 待确认` 之外的臆测性业务描述（防编造自检）
@@ -111,5 +111,5 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 
 ## Resources
 - **scripts/**：`extract_skeleton.py`（Step 1）/ `fetch_sources.py`（Step 3）/ `bigfile_split.py`（大文件）。三个脚本均默认自动落盘到 skill `.work/` 目录，不污染客户项目；完成后清理 `.work/`。
-- **references/**：`navigation-guide.md`（Step 2 必读）、`readme-guide.md`（Step 2b 必读）、`description-guide.md`（Step 2c 必读）、`Explain-style-guide.md`（Step 3 必读）、`language-adaptation.md`（语言分支）、`orchestration-guide.md`（流水线细节 + 失败排查）、`limitations.md`（已知限制）
-- **samples/**：`references/samples/ZHIDAO.md` 与 `references/samples/open_deep_research/` 是用户认可的黄金样例，风格把握不准时对照
+- **references/**：`navigation-guide.md`（Step 2 必读）、`readme-guide.md`（Step 2b 必读）、`description-guide.md`（Step 2c 必读）、`comment-style-guide.md`（Step 3 必读）、`language-adaptation.md`（语言分支）、`orchestration-guide.md`（流水线细节 + 失败排查）、`limitations.md`（已知限制）
+- **samples/**：用户认可的黄金样例，风格把握不准时对照——注释两套：`references/samples/Gewu-Deep-Research/`（Agent 编排型）与 `references/samples/Code-Probe/`（业务服务型）；README 两套：`references/samples/README/README1.md`（产品型）与 `README2.md`（学习型）；导航：`references/samples/ZHIDAO.md`

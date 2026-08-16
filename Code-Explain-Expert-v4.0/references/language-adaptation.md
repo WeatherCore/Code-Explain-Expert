@@ -1,6 +1,6 @@
 # 语言适配：注释语法与规范
 
-按骨架 JSON 中 `language` 字段选择对应章节。核心要求：**注释形式必须符合语言惯例**，内容规范见 `Explain-style-guide.md`。
+按骨架 JSON 中 `language` 字段选择对应章节。核心要求：**注释形式必须符合语言惯例**，内容规范见 `comment-style-guide.md`。
 
 ## Java（含 Kotlin）
 

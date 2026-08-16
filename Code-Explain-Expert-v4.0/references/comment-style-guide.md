@@ -1,6 +1,6 @@
 # 代码注释规范——唯一权威
 
-> 生成任何代码注释时**只读本文件**（语言语法另见 `language-adaptation.md`），风格把握不准时对照 `samples/open_deep_research/`（用户认可的黄金样例）。
+> 生成任何代码注释时**只读本文件**（语言语法另见 `language-adaptation.md`），风格把握不准时对照两套黄金样例：`samples/Gewu-Deep-Research/`（Agent 编排型项目：子图/工具调用/状态流转）与 `samples/Code-Probe/`（业务服务型项目：RAG 检索/SSE 流式/会话持久化）。
 > 本文件融合三层：**用户黄金风格**（默认采用，拟人化比喻等）+ **通用底线**（意图级 vs 流水账）+ **正反例速查**。
 
 ## 1. 底线：意图级 vs 流水账
@@ -23,10 +23,17 @@
 
 ### 2.2 注释分层格式（按位置）
 
-**文件总纲**（docstring 后第一条注释）：
+**文件总纲**（docstring 后第一条注释；编排型项目一句话点角色，业务型项目写"定位 + 解决的核心问题 + 完整流程 + 亮点"）：
 ```python
 """Main LangGraph implementation for the Deep Research agent."""
 # 整个深度研究流程的"总导演"：用户的一句话进来，怎么澄清、怎么立项、怎么派研究员、怎么写报告，全在这张图（Graph）里编排
+```
+```python
+# Chat Service — RAG 对话会话持久化管理模块，用本地 sessions.json 存储每一轮聊天会话，解决两个核心问题：
+#  1.多轮上下文记忆：同一个对话窗口下，AI 能记住上一轮提问、引用过的代码片段，实现连续追问；
+#  2.会话隔离：不同浏览器 / 不同用户生成独立 session_id，互不干扰，还能绑定固定仓库 repo_id
+# 用户每问一句话，这里串起完整流程：调 search_service 找相关代码 → 拼成提示词 → 调 llm_client 流式回答 → 存进 sessions.json。
+# 按 4 个阶段把过程推给前端（检索到什么 → 提示词长啥样 → 回答逐字出来 → 完成），让 RAG 过程透明可见，这是本项目最大的亮点
 ```
 
 **区块分隔**：
@@ -69,6 +76,53 @@ async def clarify_with_user(state, config) -> ...:
 
 **行号/文件互引**（标注关键逻辑落点）：`# 具体在 P347 代码里面有体现`、`# 见 state.py 的"快递箱"`
 
+**用途标注（给谁用）**（业务型必备：说明这段代码的调用方/消费方是谁）：
+```python
+# get_sessions（会话列表）：给前端侧边栏展示历史会话用
+# build_prompt 是给预览接口 /chat/prompt-preview 使用的，只做组装，不调用大模型、不流式输出。
+# 前端点「预览 Prompt」，直接把拼接好的上下文返回给页面看，用于调试 RAG 效果
+```
+
+**小决策 why 注释**（看似多余的代码行，一句话讲清不写会出什么事）：
+```python
+# 显式 UTF-8：会话内容含中文/代码，Windows 默认 GBK 读会崩
+with open(SESSIONS_FILE, encoding="utf-8") as f:
+# repo_id 允许为 None：用户可以先创建空会话，进入聊天界面后再选择仓库。前端路由设计如此
+def create_session(repo_id: str | None = None) -> dict:
+```
+
+**函数签名参数注释**（长签名直接在形参行上注释，比集中一段更易读）：
+```python
+async def chat_stream(
+    message: str,                   # 用户当前提问文本
+    session_id: str,                # 必填会话 ID，用来读取历史对话、最后更新会话记录
+    repo_id: str                    # 必填仓库 ID，限定在该仓库向量库检索代码
+) -> AsyncGenerator[dict, None]:    # 异步生成器，持续 yield 字典数据包，前端通过 SSE 逐条接收渲染
+```
+
+**格式渲染示例**（拼字符串/构数据时，注释里展示拼出来的成品长什么样）：
+```python
+# 拼接出来这一条就是：
+# 📄 src/service/login.py (L26-L38)
+# def verify_password(raw_pwd: str, hash_pwd: str) -> bool:
+#     """校验用户密码"""
+#     ...
+```
+
+**返回值逐层拆解**（复杂返回结构，每个键的用途 + 谁消费它）：
+```python
+# 返回三层关键数据：
+# - prompt_parts：拆分好的提示词四大组成模块，供 LLM 调用层拼装请求体；
+# - total_tokens_estimate：预估总 Token，用于窗口限制判断；
+# - retrieval_results：原始检索命中列表，方便前端展示引用的代码片段、相似度分数
+```
+
+**安全/兜底设计说明**（涉及数据边界、防泄露、失败降级时，把设计意图写明）：
+```python
+# 这些内容只在前端本地展示（RagDrawer 抽屉），不会通过 API 的 SSE 流推送到前端（SSE 只推 token）。
+# 这保证了代码内容不会在流式传输中被截获泄露
+```
+
 **图/流水线构建注释**（每行 add_node/add_edge 前说明流转意图）：
 ```python
 # 主管子图 supervisor_subgraph：直接把子图对象当做节点注册进主图，
@@ -100,6 +154,11 @@ deep_researcher_builder.add_node("research_supervisor", supervisor_subgraph)
 | 状态初始化 | 投喂第一口粮食 |
 | 并行等待 | 凉拌的结果一起打包回来 |
 | 状态清空 | 完成使命 |
+| 检索/拼接/调用的中间层 | 胶水层（系统中最关键的粘合处） |
+| 多轮会话记忆持久化 | 记忆闭环 |
+| 流式逐字输出 | 打字机效果 |
+| 工具/依赖缺失报错 | 赤手空拳、直接报错罢工 |
+| 非法输入提前拦截 | 防脏数据 |
 
 ## 3. 注释粒度与红线
 
