@@ -33,6 +33,7 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 
 ### Step 2c：Description 生成（可选，用户要求时做）
 - 基于 skeleton.json + ZHIDAO.md（若已生成），按 `description-guide.md` 生成 `Description.md`（中英双版，各 300-350 字符），输出到**目标项目根目录**。
+- **含金量段必填**：必须列 2-4 个具体技术机制（编排亮点 / 稳定性设计 / 工程约束 / 自研组件），不可只写"是 X 系统，能做 Y"。机制必须可追溯到 ZHIDAO.md 或源码（不编造）。
 - **已有 Description.md 时绝不覆盖**（除非用户明确要求重写）。
 - 用户没提 Description 就不动。
 
@@ -61,7 +62,7 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
   - 定向攻坚（场景 B）→ `extract_skeleton.py --root <项目根> --path <目标目录>`，跳过全仓导航，直接 Step 3
   - 链路追踪（场景 C）→ 先 `extract_skeleton.py`，从 skeleton.json 的 `dependency_links` 沿调用链追踪，仅注释链路节点文件
   - README 生成（场景 D）→ 先 `extract_skeleton.py`，基于 skeleton.json 按 `readme-guide.md` 生成/更新 README.md（黄金门面模板：徽章+mermaid+emoji 章节+折叠，150-400 行；已有 README 绝不覆盖，除非用户要求重写）
-  - Description 生成（场景 E）→ 先 `extract_skeleton.py`，基于 skeleton.json 按 `description-guide.md` 生成 Description.md（中英双版各 300-350 字符，已有绝不覆盖）
+  - Description 生成（场景 E）→ 先 `extract_skeleton.py`，基于 skeleton.json + ZHIDAO.md（若已生成）按 `description-guide.md` 生成 Description.md（中英双版各 300-350 字符 + **含金量段必填**：2-4 个具体技术机制非泛泛标签，已有绝不覆盖）
 - **优先级决策**（用 skeleton.json 字段）：
   - 出度高的文件（Controller/入口）→ 先注释，读者先看到入口
   - 入度高的文件（Service/Domain）→ 核心业务，优先
@@ -70,7 +71,7 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 - **语言分支**：Java / Python / JS / TS / Go → 读 `language-adaptation.md` 对应章节
 - **导航文档**：生成 ZHIDAO.md 前读 `navigation-guide.md`（唯一权威：10 章黄金模板 + 风格特征 + 验收清单）
 - **README**：生成 README.md 前读 `readme-guide.md`（黄金门面模板 + 两类场景 + 三产物定位区别 + 已有 README 绝不覆盖策略），风格对照 `samples/README/`
-- **Description**：生成 Description.md 前读 `description-guide.md`（300-350 字符中英双版 + 4 句话结构 + 纯文本无 markdown）
+- **Description**：生成 Description.md 前读 `description-guide.md`（300-350 字符中英双版 + **含金量段必填**：2-4 个具体技术机制 + 3-4 句灵活结构 + 描述正文纯文本无 markdown），风格对照 `samples/Description/Description1.md`（Code Explain Expert 自描述：含金量在工程约束）与 `Description2.md`（格物：含金量在编排与稳定性）
 - **注释风格**：生成注释前读 `comment-style-guide.md`（唯一权威：用户黄金风格 + 意图级底线 + 正反例速查 + 防编造规则）；风格把握不准时对照三套黄金样例 `samples/Gewu-Deep-Research/`（Agent 编排型）、`samples/Code-Probe/`（业务服务型）与 `samples/Mall-Order/`（Java Spring Boot 业务服务型：Controller/Service/Mapper 分层、幂等/防超卖/状态机 CAS、接口与实现注释分工），导航文档对照 `samples/ZHIDAO.md`
 - **超大项目**（skeleton.json `total_files > 50` 或源码总量 > 1MB）→ 读 `orchestration-guide.md` 的批处理策略，分阶段执行，每轮只处理 3-5 个文件
 - **大文件**（单文件 > 500 行）→ 跑 `scripts/bigfile_split.py` 切块，逐块注释（先类/方法注释，行内注释第二遍补）
@@ -101,7 +102,7 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 - **Step 1 后**：`extract_skeleton.py` 退出码 0，skeleton.json 可解析，`total_files > 0`，`files[]` 不含测试/构建产物路径
 - **Step 2 后**：ZHIDAO.md 含核心章节（第 1/3/4/5/9 章不可省），且按 `navigation-guide.md` 的 10 章黄金模板与风格特征生成
 - **Step 2b 后**（若执行）：README.md 居中头部齐备（emoji 项目名 + 一句话定位 + 徽章行），至少 1 张可渲染的 mermaid 架构图，快速开始命令可复制即用，长内容已用 `<details>` 折叠，篇幅 150-400 行，项目结构章节指向 ZHIDAO.md，已有 README 未被覆盖（对照 `readme-guide.md` §8 验收清单）
-- **Step 2c 后**（若执行）：Description.md 含中英双版，各 300-350 字符，4 句话结构齐备，纯文本无 markdown 语法（对照 `description-guide.md` §8 验收清单）
+- **Step 2c 后**（若执行）：Description.md 含中英双版，各 300-350 字符，**含金量段存在**（≥ 2 个具体技术机制非标签），4 个维度齐备（是什么 / 含金量 / 技术栈+工程构成 / 目标场景，可融合到 3-4 句），描述正文纯文本无 markdown 语法（对照 `description-guide.md` §9 验收清单）
 - **Step 3 后**：抽查 2-3 个已注释文件，确认
   ①注释为意图级非流水账（对照 `comment-style-guide.md` §5 正反例速查）
   ②原逻辑代码零改动（`git diff --stat` 只显示注释行新增；非 git 仓库用 `fetch_sources.py` 重新捞原文件比对）
@@ -112,4 +113,4 @@ description: 通读大型项目源码，生成项目导航文档（ZHIDAO.md）�
 ## Resources
 - **scripts/**：`extract_skeleton.py`（Step 1）/ `fetch_sources.py`（Step 3）/ `bigfile_split.py`（大文件）。三个脚本均默认自动落盘到 skill `.work/` 目录，不污染客户项目；完成后清理 `.work/`。
 - **references/**：`navigation-guide.md`（Step 2 必读）、`readme-guide.md`（Step 2b 必读）、`description-guide.md`（Step 2c 必读）、`comment-style-guide.md`（Step 3 必读）、`language-adaptation.md`（语言分支）、`orchestration-guide.md`（流水线细节 + 失败排查）、`limitations.md`（已知限制）
-- **samples/**：用户认可的黄金样例，风格把握不准时对照——注释三套：`references/samples/Gewu-Deep-Research/`（Agent 编排型）、`references/samples/Code-Probe/`（业务服务型）与 `references/samples/Mall-Order/`（Java Spring Boot 业务服务型）；README 两套：`references/samples/README/README1.md`（产品型）与 `README2.md`（学习型）；导航：`references/samples/ZHIDAO.md`
+- **samples/**：用户认可的黄金样例，风格把握不准时对照——注释三套：`references/samples/Gewu-Deep-Research/`（Agent 编排型）、`references/samples/Code-Probe/`（业务服务型）与 `references/samples/Mall-Order/`（Java Spring Boot 业务服务型）；README 两套：`references/samples/README/README1.md`（产品型）与 `README2.md`（学习型）；Description 两套：`references/samples/Description/Description1.md`（Code Explain Expert 自描述：含金量在工程约束）与 `Description2.md`（格物：含金量在编排与稳定性）；导航：`references/samples/ZHIDAO.md`
