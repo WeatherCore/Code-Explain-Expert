@@ -526,6 +526,89 @@ def build_dependency_links(files: list[dict]) -> list[dict]:
     return links
 
 
+def compute_quick_start(files: list[dict], links: list[dict]) -> list[dict]:
+    """基于依赖图自动推荐"快速上手 3 文件"。
+
+    启发式：让读者从入口→中间→核心理解主流程，低依赖到高依赖排序。
+    - 入口：出度最高（依赖别人多 = 上层 Controller/路由）
+    - 核心：入度最高（被依赖最多 = 底层 Service/Domain）
+    - 中间：入口的直接依赖里入度最高的（连接入口与核心的中间层）
+
+    文件数 ≤3 时全部返回。结果不足 3 个时按入度补齐。
+    返回的每一项含 path/role/in_degree/out_degree/reason，供 ZHIDAO.md 第 5 章"阅读顺序建议"与第 9 章学习路线起点直接引用。
+    """
+    if not files:
+        return []
+    if len(files) <= 3:
+        return [{"path": f["path"], "role": "全部", "reason": "文件数 ≤3，全部纳入快速上手"}
+                for f in files]
+
+    # 计算入度（被依赖）/出度（依赖别人）
+    in_deg: dict[str, int] = {f["path"]: 0 for f in files}
+    out_deg: dict[str, int] = {f["path"]: 0 for f in files}
+    for l in links:
+        out_deg[l["from"]] = out_deg.get(l["from"], 0) + 1
+        in_deg[l["to"]] = in_deg.get(l["to"], 0) + 1
+
+    path_to_file = {f["path"]: f for f in files}
+
+    # 入口：优先入度=0 且出度>0 的文件（顶层不被依赖 = 请求起点/主入口）；
+    # 在候选里优先选名字含 Controller/Router/Main 等入口特征的（避免把 Impl 等实现类误判为入口——
+    # Spring 等框架里 Controller 依赖接口而非 Impl，静态分析建不出 Controller→Impl 边，Impl 入度=0 是假象）；
+    # 多个时取出度最高的；无入度=0 文件时退化为入度最低
+    entry_hints = ("controller", "router", "resource", "handler", "main", "app",
+                   "index", "startup", "entry", "endpoint", "api")
+    zero_in = [f for f in files if in_deg[f["path"]] == 0 and out_deg[f["path"]] > 0]
+    hinted = [f for f in zero_in if any(h in f["path"].lower() for h in entry_hints)]
+    entry_pool = hinted if hinted else zero_in
+    if entry_pool:
+        entry = max(entry_pool, key=lambda f: out_deg[f["path"]])
+    else:
+        entry = min(files, key=lambda f: (in_deg[f["path"]], -out_deg[f["path"]]))
+    # 核心：入度最高，入度相同取出度低的（越底层越被依赖）
+    core = max(files, key=lambda f: (in_deg[f["path"]], -out_deg[f["path"]]))
+
+    # 中间：入口的直接依赖里，入度最高的（连接入口与核心）
+    entry_deps = [l["to"] for l in links if l["from"] == entry["path"]]
+    middle = None
+    if entry_deps:
+        middle_path = max(entry_deps, key=lambda p: in_deg.get(p, 0))
+        middle = path_to_file.get(middle_path)
+
+    def _item(f: dict, role: str) -> dict:
+        p = f["path"]
+        reasons = {
+            "入口": f"入度 {in_deg[p]} 出度 {out_deg[p]}（顶层不被依赖，请求起点，读者最先接触）",
+            "中间": f"入口直接依赖里入度最高（入度 {in_deg[p]}），连接入口与核心",
+            "核心": f"入度 {in_deg[p]}（被依赖最多，核心业务/领域模型）",
+            "补充": f"入度 {in_deg[p]}，作为快速上手补充",
+        }
+        return {
+            "path": p, "role": role,
+            "in_degree": in_deg[p], "out_degree": out_deg[p],
+            "reason": reasons[role],
+        }
+
+    result: list[dict] = []
+    seen: set[str] = set()
+    for f, role in [(entry, "入口"), (middle, "中间"), (core, "核心")]:
+        if f and f["path"] not in seen:
+            result.append(_item(f, role))
+            seen.add(f["path"])
+
+    # 不足 3 个时按入度补齐
+    if len(result) < 3:
+        remaining = sorted(
+            [f for f in files if f["path"] not in seen],
+            key=lambda f: in_deg[f["path"]], reverse=True,
+        )
+        for f in remaining[:3 - len(result)]:
+            result.append(_item(f, "补充"))
+            seen.add(f["path"])
+
+    return result[:3]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="提取项目骨架 JSON（类/方法/import/依赖关系，不含实现代码）")
     parser.add_argument("--root", required=True, help="项目根目录")
@@ -587,6 +670,7 @@ def main() -> int:
         "modules": {m: sorted(fl) for m, fl in sorted(modules.items())},
         "files": scanned,
         "dependency_links": links,
+        "quick_start_files": compute_quick_start(scanned, links),
     }
 
     skeleton_json = json.dumps(skeleton, ensure_ascii=False, indent=2)
