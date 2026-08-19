@@ -31,7 +31,22 @@
 | 依赖流向 | 第 4 章全景图 + 第 6 章设计模式 |
 | 推荐阅读路径 | 第 5 章"阅读顺序建议" + 第 9 章学习路线 |
 
-### 1.3 文件头模板
+### 1.3 快速上手 3 文件（skeleton.json 的 quick_start_files 字段）
+
+skeleton.json 新增 `quick_start_files` 字段，基于 dependency_links 自动算出"快速上手 3 文件"，供第 5 章"阅读顺序建议"与第 9 章学习路线起点直接引用，**不再凭 LLM 感觉写阅读路径**：
+
+- **入口**：入度=0 且出度>0 的文件（顶层不被依赖 = 请求起点），优先选名字含 Controller/Router/Main/App 等特征的（避免把 Impl 等实现类误判——Spring 等框架里 Controller 依赖接口而非 Impl，静态分析建不出 Controller→Impl 边）
+- **中间**：入口的直接依赖里入度最高的（连接入口与核心）
+- **核心/补充**：全局入度排序取最高，作为被依赖最多的核心概念
+
+每个文件含 `path` / `role` / `in_degree` / `out_degree` / `reason` 五字段。
+
+生成 ZHIDAO.md 时：
+1. 第 5 章"阅读顺序建议"按 quick_start_files 的入口→中间→核心顺序组织，标注每个文件的 role 与 reason
+2. 第 9 章学习路线的"阶段 1"以 quick_start_files 为起点
+3. 若 LLM 认为算法结果可改进（如中间选了枚举而非 Service），可在 ZHIDAO 里补充语义说明，但**起点必须用 quick_start_files**——它是数据驱动的，比臆测更可靠
+
+### 1.4 文件头模板
 
 ```markdown
 # 📖 {{项目名}} 项目导读指南
