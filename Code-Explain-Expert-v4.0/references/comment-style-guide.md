@@ -213,6 +213,30 @@ deep_researcher_builder.add_node("research_supervisor", supervisor_subgraph)
 - 单行注释 `//`（Java/JS/TS/Go/C 系）或 `#`（Python）；块注释 `/** */` / `"""docstring"""`（语法细则见 `language-adaptation.md`）
 - `//` 后加一个空格；行内注释与代码间留 1-2 空格
 
+### 3.5 证据可追溯：强制引用骨架行号（防编造强化）
+
+意图级注释的根基是"真懂业务"。为防止 LLM 编造看似合理的业务故事，涉及**具体实现机制**的注释必须能追溯到 skeleton.json 的具体字段（行号 / 类名 / 方法签名 / 依赖边）：
+
+- **涉及具体方法/类的注释**：标注 skeleton.json 里的行号，格式 `[L<行号>]` 或 `[见 skeleton.json: <类名>#<方法> L<行号>]`
+  ```java
+  // [L45] 幂等挡板：同 outRequestNo 二次进入直接返回（见 skeleton.json: PaymentService#handlePayCallback L45）
+  ```
+
+- **涉及依赖/调用关系的注释**：标注 skeleton.json 的 dependency_links 依据
+  ```python
+  # order_service 依赖 payment_service（见 skeleton.json dependency_links: order_service -> payment_service），
+  # 支付失败时由 payment 回调触发订单状态回滚
+  ```
+
+- **涉及状态机/流程的注释**：标注状态枚举的来源行号
+  ```java
+  // 状态: PENDING -> PAID（OrderStatus.java L12 定义 PENDING，L15 定义 PAID）
+  ```
+
+- **没有骨架依据的"业务故事"算疑似编造**：若注释里的业务背景无法在 skeleton.json 或源码中找到对应证据，必须改写为 `// 待确认：...` 而非臆测
+
+**为什么强制证据**：错误的意图注释比没注释更有害——它会误导后续读者把臆测当事实。强制引用行号让 LLM 的每条业务判断都可被追溯、可被证伪，从机制上压制编造动机。
+
 ## 4. 特殊场景规则
 
 - **状态机/流程编排**：每个状态转换处注释：`// 状态: PENDING -> PAID，触发条件: 支付回调成功`；注明下一可能状态
@@ -280,4 +304,5 @@ public PaymentResult pay(PaymentRequest request) {
 - [ ] 术语统一、格式符合语言规范
 - [ ] 函数级注释含拟人化比喻或场景枚举（用户风格强化项）
 - [ ] **无臆测**：读不懂的地方已标 `// 待确认：...`，未编造业务故事
+- [ ] **证据可追溯**：涉及具体实现机制的注释已标注 skeleton.json 行号/类名/方法（对照 §3.5），无骨架依据的业务描述已改写为 `// 待确认`
 - [ ] **待确认清单已汇总**：所有 `// 待确认` 标记的疑点已列在最终交付报告里
