@@ -78,3 +78,14 @@
 - **为什么不阻塞**：三个脚本默认覆盖写入（`write_text` 覆盖同名文件），`.work/` 里的 skeleton.json / batch.txt / chunks.json 不会积累垃圾，下次运行自动覆盖
 - **如需彻底清理**：① 在 Bash 工具中授权命令（escalation）后执行清理命令；② 或提示用户手动删除 `.work/` 目录
 - **设计决策**：v4.0 选择"覆盖写入 + 尽力清理"策略，而非"强制清理"——因为 safe-delete 是平台行为，skill 无法绕过；覆盖写入保证了即使 .work/ 残留也不会造成实际问题
+
+## 8. quick_start_files 启发式限制
+
+skeleton.json 的 `quick_start_files` 字段基于 dependency_links 自动算出"快速上手 3 文件"，有以下启发式限制：
+
+- **入口识别依赖命名特征**：算法优先选名字含 Controller/Router/Main/App/Index 等的文件作为入口。若项目用非主流命名（如入口叫 `BizFacade`、`Action`、`View`、`Routes`），可能漏选；退化为入度=0 时可能误选 Impl 等实现类（Spring 等框架里 Controller 依赖接口而非 Impl，静态分析建不出 Controller→Impl 边，Impl 入度=0 是假象）
+- **中间节点选入口直接依赖里入度最高的**：可能选到枚举/DTO 等被广泛引用的底层类，而非 Service 等业务中间层。LLM 在 ZHIDAO 里可补充语义说明
+- **核心/补充选全局入度排序**：可能是工具类/常量类/枚举而非业务核心。LLM 应结合 `reason` 字段判断
+- **依赖 dependency_links 的准确性**：§2 列出的依赖边限制（多态/接口/wildcard import/动态分发）都会影响 quick_start_files 的质量
+
+算法是数据驱动的近似，不保证完美——但比 LLM 凭感觉写阅读路径更可靠。LLM 拿到 quick_start_files 后应结合项目语义在 ZHIDAO 里组织叙述，而非机械照搬。
