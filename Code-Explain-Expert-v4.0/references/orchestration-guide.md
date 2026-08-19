@@ -65,6 +65,69 @@
 - 每轮开始前重读骨架 JSON 的 `modules` 概览（上下文可丢弃已处理文件的源码，保留骨架）
 - 单文件 > 500 行：跑 `bigfile_split.py` 切块（默认 800 行/块、40 行重叠），先类注释+方法注释（高价值），行内注释第二遍补充
 
+## 进度报告标准格式
+
+每轮注释完成后向用户报告进度，用以下模板（可直接复制填空）。每 5 个文件或每个模块结束时报告一次；超大项目分阶段执行时，报告后等用户确认再进下一批。
+
+```markdown
+### 注释进度（第 N 轮）
+
+- **已完成**：X / Y 个文件
+- **当前模块**：<模块名>
+- **本轮处理**：<file1>, <file2>, <file3>
+- **下批预计**：<file4>, <file5>
+- **风险点**：
+  - `// 待确认` 标记 N 处（待核实清单见末尾汇总）
+  - <其他风险：大文件切块 / 依赖边缺失 / existing_Explain_ratio 异常等>
+- **自检结果**：`verify_annotations.py` PASS（逻辑零改动）/ FAIL（已停止并提示回滚）
+```
+
+**报告要点**：
+- 进度数字必须准确（从骨架 JSON 的 `files` 数组与已处理清单对照）
+- `// 待确认` 标记数必须如实汇总，不得隐瞒
+- 自检结果必须跑 `verify_annotations.py` 后填入，不得跳过自检直接写 PASS
+
+## 回滚指引（分场景）
+
+注释自检 `verify_annotations.py` FAIL（检测到逻辑改动）时，**立即停止写入**，按以下场景提示用户回滚。**skill 绝不执行任何 git 写命令**，只提示命令由用户自己执行。
+
+### 场景 A：git 仓库
+
+提示用户执行（由用户自己跑）：
+```bash
+# 回滚单个文件
+git checkout -- <file>
+# 或
+git restore <file>
+
+# 回滚多个文件
+git checkout -- <file1> <file2> <file3>
+# 或
+git restore <file1> <file2> <file3>
+```
+
+### 场景 B：非 git 仓库
+
+提示用户从自己的备份恢复（Step 0 已提醒用户自行备份）：
+- 拷贝副本：从副本覆盖回去
+- IDE 本地历史：用 IDE 的 Local History 恢复（VS Code / IntelliJ / PyCharm 均支持）
+- 未备份：诚实告知"未检测到可用备份，建议检查 IDE 本地历史"
+
+### 场景 C：部分文件已写（混合状态）
+
+列出已写文件清单供用户核对，区分 PASS / FAIL 状态：
+```markdown
+### 已写入文件清单（供回滚核对）
+
+| # | 文件 | 自检状态 | 建议 |
+|---|------|----------|------|
+| 1 | <file1> | PASS（只加了注释） | 保留 |
+| 2 | <file2> | FAIL（检测到逻辑改动） | 回滚（git checkout / 从备份恢复） |
+| 3 | <file3> | 未写入 | 跳过 |
+```
+
+用户确认后，对 FAIL 文件按场景 A 或 B 回滚，PASS 文件可保留。回滚后重新只加注释（不碰逻辑行）。
+
 ## 失败排查
 
 | 现象 | 排查 |
@@ -76,6 +139,7 @@
 | bigfile_split 切块数为 1 | 文件未超 `--max-lines` 阈值，无需切块；正常情况 |
 | bigfile_split 输出 chunk_file 为 None | v4.0 正常行为：切块清单自动落盘到 `.work/chunks.json`，`chunk_file` 字段为 None（不再落盘到客户项目），用 Read 工具读 `.work/chunks.json` 拿行号区间，再按 offset/limit 读源文件 |
 | 注释写入后 git diff 显示逻辑变更 | 立即停止，**提示用户**执行 `git checkout -- <file>` 或 `git restore <file>`（由用户自己执行，skill 不代为执行），重新只加注释 |
+| `verify_annotations.py` FAIL | 自检检测到逻辑改动，立即停止写入；按上方"回滚指引"分场景提示用户回滚（skill 绝不执行 git 写命令）；回滚后重新只加注释 |
 | 用户要求回滚 | **只提示命令，不执行**：git 仓库提示 `git checkout -- <files>` 或 `git restore <files>`（由用户执行）；非 git 仓库提示用户从自己的备份恢复。本 skill 绝不执行任何 git 写命令 |
 
 ## 完成后清理
